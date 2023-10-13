@@ -1,0 +1,2 @@
+# TaguchiArrayGenerator
+Multivariate Experimentation Tables
