@@ -1,0 +1,138 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+
+    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
+        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+
+    <title>Taguchi Array Generator</title>
+</head>
+
+<body>
+    <div class="container">
+        <div class="jumbotron" style="padding-bottom: 20px !important;">
+            <div style="float: left; position: absolute; top: 20px;">
+                <a href="LINK">Find on Github</a>
+            </div>
+            <h1>Taguchi Array Generator</h1>
+            <span>All variable settings must be tested an equal number of times<br />
+                All settings must be tested against all other settings equally<br />
+                Algorithm adapted from MATLAB code written by <a
+                    href="https://www.mathworks.com/matlabcentral/fileexchange/71628-taguchiarray?s_tid=mwa_osa_a">Chixin
+                    Xiao</a><br />
+            </span>
+            <br />
+            <div class="row">
+                <div class="col">
+                    <div class="form-group">
+                        <label for="numberOfVariables">Number of Variables (Factors)</label>
+                        <input type="number" class="form-control" id="numberOfVariables">
+                    </div>
+                </div>
+                <div class="col">
+                    <div class="form-group">
+                        <label for="numberOfSettings">Number of Settings (Levels)</label>
+                        <input type="number" class="form-control" id="numberOfSettings">
+                    </div>
+                </div>
+            </div>
+            <label class="btn btn-primary">
+                Generate! <input type="button" id="generate" style="display: none;">
+            </label>
+        </div>
+
+
+        <span id="outputTable"></span>
+
+    </div>
+    <script>
+        const outputTableElement = document.getElementById("outputTable");
+
+        function numberToLetters(number) {
+            let result = '';
+            while (number > 0) {
+                let remainder = (number - 1) % 26; // Calculate the remainder
+                result = String.fromCharCode(65 + remainder) + result; // Convert remainder to letter and prepend it
+                number = Math.floor((number - 1) / 26); // Update the number for the next iteration
+            }
+            return result;
+        }
+
+        function generateTable(Q, N) {
+            // Calculate J
+            let J = Math.floor(Math.log(N * (Q - 1) + 1) / Math.log(Q));
+            let QJ = Math.pow(Q, J);
+
+            // Check if N meets the equation
+            if (N !== ((QJ - 1) / (Q - 1))) {
+                J = J + 1;
+            }
+
+            // Initialize Ta as an empty 2D array
+            let Ta = new Array(QJ);
+            for (let i = 0; i < QJ; i++) {
+                Ta[i] = new Array(N);
+            }
+
+            // Step 1: Construct the basic columns
+            for (let k = 1; k <= J; k++) {
+                let j = (Math.pow(Q, k - 1) - 1) / (Q - 1) + 1;
+                for (let i = 1; i <= QJ; i++) {
+                    Ta[i - 1][j - 1] = Math.floor(((i - 1) / Math.pow(Q, J - k))) % Q;
+                }
+            }
+
+            // Step 2: Construct the nonbasic columns
+            for (let k = 2; k <= J; k++) {
+                let j = (Math.pow(Q, k - 1) - 1) / (Q - 1) + 1;
+                for (let s = 1; s <= j - 1; s++) {
+                    for (let t = 1; t <= Q - 1; t++) {
+                        for (let i = 0; i < QJ; i++) {
+                            Ta[i][j + (s - 1) * (Q - 1) + t - 1] = (Ta[i][s - 1] * t + Ta[i][j - 1]) % Q;
+                        }
+                    }
+                }
+            }
+
+            // Step 3: Increment all values by one
+            for (let i = 0; i < QJ; i++)
+                for (let j = 0; j < N; j++) Ta[i][j]++;
+
+            // Step 4: Return only the first N columns
+            Ta = Ta.map(row => row.slice(0, N));
+
+            // Convert to HTML
+            // Header row
+            let outputTableHTML = '<table class="table"><thead><tr><th scope="col">#</th>';
+
+            for (let i = 1; i < N + 1; i++) {
+                outputTableHTML += '<th scope="col"><input type="text" value="' + numberToLetters(i) + '"></th>';
+            }
+            outputTableHTML += '<th scope="col">Results</th></tr></thead><tbody>';
+
+            // For each row
+            for (let i = 0; i < QJ; i++) {
+                outputTableHTML += '<tr><th scope="row">' + (i + 1) + '</th>';
+
+                // For each column
+                for (let j = 0; j < N; j++) {
+                    outputTableHTML += '<td>' + numberToLetters(j+1) + Ta[i][j] + '</td>';
+                }
+
+                outputTableHTML += '<td><input type="♥number"></td></tr>';
+            }
+            outputTableHTML += '</tbody></table>';
+            console.log(Ta)
+            console.log(J)
+            console.log(Ta[1])
+            return outputTableHTML
+        }
+
+        outputTableElement.innerHTML = generateTable(2, 3);
+    </script>
+</body>
+
+</html>
