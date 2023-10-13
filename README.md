@@ -1,4 +1,4 @@
 # Taguchi Array Generator
 Multivariate Experimentation Tables
 
-Webpage available [here](sskki-exe.github.io/TaguchiArrayGenerator/).
+Webpage available [here](https://sskki-exe.github.io/TaguchiArrayGenerator/).
