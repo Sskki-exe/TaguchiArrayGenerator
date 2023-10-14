@@ -4,52 +4,113 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet"
+        integrity="sha384-T3c6CoIi6uLrA9TneNEoa7RxnatzjcDSCmG1MXxSR1GAsXEV/Dwwykc2MPK8M2HN" crossorigin="anonymous">
+    <style>
+        :root {
+            --text-color: #110e03;
+            --background-color: #fdfaf2;
+            --primary-color: #c9a926;
+            --secondary-color: #f6eed0;
+            --accent-color: #d2b028;
 
-    <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css"
-        integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">
+        }
 
+        body {
+            background-color: var(--background-color);
+            color: var(--text-color);
+        }
+
+        .container {
+            background-color: var(--secondary-color);
+            padding: 15px;
+        }
+    </style>
     <title>Taguchi Array Generator</title>
 </head>
 
 <body>
     <div class="container">
-        <div class="jumbotron" style="padding-bottom: 20px !important;">
-            <div style="float: left; position: absolute; top: 20px;">
-                <a href="LINK">Find on Github</a>
-            </div>
-            <h1>Taguchi Array Generator</h1>
-            <span>All variable settings must be tested an equal number of times<br />
-                All settings must be tested against all other settings equally<br />
-                Algorithm adapted from MATLAB code written by <a
-                    href="https://www.mathworks.com/matlabcentral/fileexchange/71628-taguchiarray?s_tid=mwa_osa_a">Chixin
-                    Xiao</a><br />
-            </span>
-            <br />
-            <div class="row">
-                <div class="col">
-                    <div class="form-group">
-                        <label for="numberOfVariables">Number of Variables (Factors)</label>
-                        <input type="number" class="form-control" id="numberOfVariables">
-                    </div>
-                </div>
-                <div class="col">
-                    <div class="form-group">
-                        <label for="numberOfSettings">Number of Settings (Levels)</label>
-                        <input type="number" class="form-control" id="numberOfSettings">
-                    </div>
+        <h1 class="display-1"><strong>Taguchi Array Generator</strong></h1>
+        <a href="https://github.com/Sskki-exe/TaguchiArrayGenerator">Source Code</a><br><br>
+        Taguchi Arrays, also called Orthogonal Arrays, are used in Multivariate Experimental Design. <br>
+        When finding the Results of changing the Levels of multiple Factors, Taguchi Arrays can be used to efficiently determine which Factors are most influential on the Results. <br>
+        Inspired by <a href="https://www.youtube.com/watch?v=5oULEuOoRd0">NightHawkInLight</a>.<br>
+        Algorithm adapted from MATLAB code written by <a
+            href="https://www.mathworks.com/matlabcentral/fileexchange/71628-taguchiarray?s_tid=mwa_osa_a">Chixin
+            Xiao</a>.<br><br>
+
+
+        <div class="row align-items-end">
+            <div class="col">
+                <div class="form-group">
+                    <label for="numberOfVariables">Number of Variables (Factors)</label>
+                    <input type="number" class="form-control" id="numberOfVariables" min="1">
                 </div>
             </div>
-            <label class="btn btn-primary">
-                Generate! <input type="button" id="generate" style="display: none;">
+            <div class="col">
+                <div class="form-group">
+                    <label for="numberOfSettings">Number of Settings (Levels)</label>
+                    <input type="number" class="form-control" id="numberOfSettings" min="2">
+                </div>
+            </div>
+            <div class="col">
+                <div class="form-group">
+                    <label for="numberOfResults">Number of Measurements (Results)</label>
+                    <input type="number" class="form-control" id="numberOfResults" min="1">
+                </div>
+            </div>
+        </div>
+        <br>
+        <div class="form-group">
+            <label class="btn btn-primary" onclick="generateDefinitionArray()">
+                Define Labels! <input type="button" id="generateDefinitionArray" style="display: none;">
             </label>
         </div>
+    </div>
+    <br>
+    <div class="container" id="definitionContainer" hidden>
+        <h1>Label Definition</h1>
+        <span>
+            Change what labels are used in the Taguchi Array that is generated in the next step. <br>
+            Name each of the factors and the levels of each factor to be tested. <br><br>
+        </span>
+        <span id="definitionTable"></span>
+        <label class="btn btn-primary" onclick="generateTaguchiArray()">
+            Generate Array! <input type="button" id="generateTaguchiArray" style="display: none;">
+        </label>
+    </div>
+    <br>
+    <div class="container" id="taguchiArrayContainer" hidden>
+        <h1>Taguchi Array</h1><br>
+        <span id="taguchiArray"></span>
+        <label class="btn btn-primary" onclick="generateResults()">
+            Calculate Results! <input type="button" id="generateResults" style="display: none;">
+        </label>
+    </div>
+    <br>
+    <div class="container" id="resultsContainer" hidden>
+        <h1>Results</h1>
+        <span id="resultsTable"></span>
+    </div>
 
-
-        <span id="outputTable"></span>
 
     </div>
     <script>
-        const outputTableElement = document.getElementById("outputTable");
+        const taguchiArrayElement = document.getElementById('taguchiArray');
+        const definitionTableElement = document.getElementById('definitionTable');
+        const numberOfVariablesElement = document.getElementById('numberOfVariables');
+        const numberOfSettingsElement = document.getElementById('numberOfSettings');
+        const numberOfResultsElement = document.getElementById('numberOfResults');
+        const resultsTableElement = document.getElementById('resultsTable');
+
+        var resultsIndices;
+
+        const debugMode = false;
+
+        // generateDefinitionArray();
+        // generateTaguchiArray();
+        // generateResults();
 
         function numberToLetters(number) {
             let result = '';
@@ -61,15 +122,86 @@
             return result;
         }
 
-        function generateTable(Q, N) {
+        function generateDefinitionArray(Q, N, R) {
+            document.getElementById("definitionContainer").removeAttribute("hidden");
+
+            // Q is number of settings
+            // N is number of variables
+            // R is number of results
+
+            if (Q === undefined) Q = parseInt(numberOfSettingsElement.value);
+            if (N === undefined) N = parseInt(numberOfVariablesElement.value);
+            if (R === undefined) R = parseInt(numberOfResultsElement.value);
+
+            // Generate HTML
+            // Header row
+            var outputTableHTML = '<table class="table">';
+            if (!debugMode) outputTableHTML += '<thead><tr><th scope="col">Factor</th>'; // Number column
+            for (let i = 0; i < N; i++) {
+                if (!debugMode) outputTableHTML += '<th scope="col"><input id="F' + i + '" type="text" value="' +
+                    numberToLetters(
+                        i +
+                        1) + '"></th>';
+            }
+            outputTableHTML += '</thead><tbody>';
+
+            // For each row
+            for (let i = 0; i < Q; i++) {
+                outputTableHTML += '<tr><th scope="row">' + // Number column
+                    'Level ' + (i + 1) +
+                    '</th>';
+                // For each column
+                for (let j = 0; j < N; j++) outputTableHTML += '<td><input id="' +
+                    'F' + j + 'L' + i +
+                    '" type="text" value="' +
+                    numberToLetters(j + 1) + (i + 1) +
+                    '"></td>';
+
+                outputTableHTML += '</tr>';
+            }
+            outputTableHTML += '</tbody></table>';
+
+            // Results labels
+            if (R) {
+                outputTableHTML += '<br><table class="table"><tbody>';
+                for (let i = 0; i < R; i++) {
+                    outputTableHTML += '<tr><th scope="row">' + // Result
+                        'Result ' + (i + 1) +
+                        '</th><td><input id="' +
+                        'R' + i +
+                        '" type="text" value="' +
+                        'R' + (i + 1) +
+                        '"></td></tr>';
+                }
+                outputTableHTML += '</tbody></table>';
+            }
+
+            definitionTableElement.innerHTML = outputTableHTML;
+
+        }
+
+        function generateTaguchiArray(Q, N, R) {
+            document.getElementById("taguchiArrayContainer").removeAttribute("hidden");
+
+            // Q is number of settings
+            // N is number of variables
+            // R is number of results
+
+            if (Q === undefined) Q = parseInt(numberOfSettingsElement.value);
+            if (N === undefined) N = parseInt(numberOfVariablesElement.value);
+            if (R === undefined) R = parseInt(numberOfResultsElement.value);
+
+            // Array Generation Maths
             // Calculate J
             let J = Math.floor(Math.log(N * (Q - 1) + 1) / Math.log(Q));
-            let QJ = Math.pow(Q, J);
 
             // Check if N meets the equation
-            if (N !== ((QJ - 1) / (Q - 1))) {
+            if (N !== ((Math.pow(Q, J) - 1) / (Q - 1))) {
                 J = J + 1;
             }
+            let QJ = Math.pow(Q, J);
+
+            resultsIndices = new Array(QJ);
 
             // Initialize Ta as an empty 2D array
             let Ta = new Array(QJ);
@@ -104,34 +236,110 @@
             // Step 4: Return only the first N columns
             Ta = Ta.map(row => row.slice(0, N));
 
+            if (debugMode) console.log(Ta);
+
             // Convert to HTML
             // Header row
-            let outputTableHTML = '<table class="table"><thead><tr><th scope="col">#</th>';
-
-            for (let i = 1; i < N + 1; i++) {
-                outputTableHTML += '<th scope="col"><input type="text" value="' + numberToLetters(i) + '"></th>';
+            var outputTableHTML = '<table class="table">';
+            if (!debugMode) outputTableHTML += '<thead><tr><th scope="col">#</th>'; // Number column
+            for (let i = 0; i < N; i++) {
+                let factorName = document.getElementById('F' + i).value;
+                if (!debugMode) outputTableHTML += '<th scope="col">' + factorName + '</th>';
             }
-            outputTableHTML += '<th scope="col">Results</th></tr></thead><tbody>';
+            if (!debugMode) {
+                for (let i = 0; i < R; i++) {
+                    outputTableHTML += '<th scope="col">' + document.getElementById('R' + i).value +
+                        '</th>'; // Results column(s)
+                }
+            }
+            outputTableHTML += '</tr></thead><tbody>';
 
-            // For each row
+            // For each test run row
             for (let i = 0; i < QJ; i++) {
-                outputTableHTML += '<tr><th scope="row">' + (i + 1) + '</th>';
+                let resultsIndex = '';
+                outputTableHTML += '<tr>';
+                if (!debugMode) outputTableHTML += '<th scope="row">' + (i + 1) + '</th>'; // Number column
 
-                // For each column
+                // For each factor level in column
                 for (let j = 0; j < N; j++) {
-                    outputTableHTML += '<td>' + numberToLetters(j+1) + Ta[i][j] + '</td>';
+                    if (!debugMode) {
+                        let levelID = "F" + j + "L" + (Ta[i][j] - 1);
+                        resultsIndex += levelID;
+                        let levelName = document.getElementById(levelID).value;
+                        outputTableHTML += '<td>' + levelName + '</td>';
+                    } else outputTableHTML += '<td>' + Ta[i][j] + '</td>';
                 }
 
-                outputTableHTML += '<td><input type="♥number"></td></tr>';
+                // Results column(s)
+                if (!debugMode) {
+                    for (let j = 0; j < R; j++) {
+                        outputTableHTML += '<td><input id="' +
+                            'T' + i + // Test number
+                            'R' + j + // Result number
+                            '" type="number" value="0"></td>';
+                    }
+                }
+                outputTableHTML += '</tr>';
+                resultsIndices[i] = resultsIndex;
             }
             outputTableHTML += '</tbody></table>';
-            console.log(Ta)
-            console.log(J)
-            console.log(Ta[1])
-            return outputTableHTML
+            // Output table to page
+            taguchiArrayElement.innerHTML = outputTableHTML;
         }
 
-        outputTableElement.innerHTML = generateTable(2, 3);
+        function generateResults(Q, N, R) {
+            document.getElementById("resultsContainer").removeAttribute("hidden");
+            // Q is number of settings
+            // N is number of variables
+            // R is number of results
+
+            if (Q === undefined) Q = parseInt(numberOfSettingsElement.value);
+            if (N === undefined) N = parseInt(numberOfVariablesElement.value);
+            if (R === undefined) R = parseInt(numberOfResultsElement.value);
+
+            var outputTableHTML = '';
+
+            // Breakdown results for each factor
+            for (let i = 0; i < N; i++) {
+                // Title
+                outputTableHTML += '<h4 id="factorTitle'+i+'">' + document.getElementById('F' + i).value + '</h4>' +
+                    // Table of results
+                    // Header row
+                    '<table class="table"><thead><tr><th scope="col">Level</th>';
+                for (let i = 0; i < R; i++) {
+                    outputTableHTML += '<th scope="col">' + document.getElementById('R' + i).value +
+                        '</th>'; // Results column(s)
+                }
+                outputTableHTML += '</tr></thead><tbody>';
+                // For each setting level row
+                for (let j = 0; j < Q; j++) {
+                    outputTableHTML += '<tr>' +
+                        // Level value column
+                        '<td>' + document.getElementById('F' + i + 'L' + j).value + '</td>';
+                    // For each result
+                    for (let k = 0; k < R; k++) {
+                        // Calculate result
+                        let resultValue = 0;
+
+                        // For each test, check if relevant
+                        for (let m = 0; m < resultsIndices.length; m++)
+                            if (resultsIndices[m].includes('F' + i + 'L' + j))
+                                resultValue += parseFloat(document.getElementById('T' + m + 'R' + k).value);
+
+                        // Add result to table
+                        outputTableHTML += '<td>' + resultValue + '</td>';
+                    }
+                }
+                outputTableHTML += '</tbody></table>';
+            }
+
+            // Output table to page
+            resultsTableElement.innerHTML = outputTableHTML;
+        }
+    </script>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"
+        integrity="sha384-C6RzsynM9kWDrMNeT87bh95OGNyZPhcTNXj1NW7RuBCsyN/o0jlpcV8Qyq46cDfL" crossorigin="anonymous">
     </script>
 </body>
 
